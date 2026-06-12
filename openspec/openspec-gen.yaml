@@ -1,0 +1,80 @@
+generator:
+  version: 1
+  language: java
+  framework: springboot3
+  framework-version: 3.2.x
+  java-version: 17
+  build-tool: maven
+  orm: mybatis-xml
+  database: mysql8
+  test-framework: junit5-mockito
+  base-package: com.enterprise
+  source-root: src/main/java
+  resource-root: src/main/resources
+  test-root: src/test/java
+
+  module-mapping:
+    arch:
+      spec: specs/arch/spec.md
+      package: com.enterprise.arch
+      type: foundation
+    common:
+      spec: specs/common/spec.md
+      package: com.enterprise.common
+      type: foundation
+    user:
+      spec: specs/user/spec.md
+      package: com.enterprise.user
+      type: business
+    permission:
+      spec: specs/permission/spec.md
+      package: com.enterprise.permission
+      type: business
+
+  generation:
+    create-maven-project: true
+    generate-application-entry: true
+    generate-application-yml: true
+    generate-init-sql: true
+    generate-entity: true
+    generate-dto: true
+    generate-vo: true
+    generate-mapper-interface: true
+    generate-mapper-xml: true
+    generate-controller: true
+    generate-error-enum: true
+    generate-service-interface: true
+    generate-service-impl: true
+    generate-unit-test: true
+    generate-controller-test: true
+
+  global-capabilities:
+    auth:
+      enabled: true
+      token-type: jwt
+      header: "Authorization"
+      prefix: "Bearer "
+      anonymous-annotation: "@Anonymous"
+      permission-annotation: "@Perm"
+    security:
+      password-encrypt-type: bcrypt
+      sensitive-field-desensitize: true
+      mask-request-log: true
+    persistence:
+      logical-delete: true
+      logical-delete-column: deleted
+      default-status-column: status
+      auto-fill-time-fields: true
+
+  output-conventions:
+    controller-path-prefix: /api
+    mapper-xml-path: src/main/resources/mybatis/{module}/{Entity}Mapper.xml
+    init-sql-path: src/main/resources/sql/init.sql
+    error-code-interface: com.enterprise.common.error.ErrorCode
+    business-exception-class: com.enterprise.common.exception.BizException
+
+  dependency-order:
+    - common
+    - arch
+    - user
+    - permission

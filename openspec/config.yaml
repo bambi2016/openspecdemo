@@ -1,20 +1,27 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Project type: Java backend service generated from OpenSpec constraints.
+  Tech stack: Java 17, Spring Boot 3.2.x, Maven, MyBatis XML, MySQL 8.0, JWT, JUnit5, Mockito.
+  Base package: com.enterprise.
+  Modules: arch, common, user, permission.
+  Naming: Java fields use camelCase, database columns use snake_case, REST paths use kebab-case only when needed.
+  Architecture: common and arch are shared foundations; user and permission are business modules. Business modules must not import each other's entities directly.
+  Persistence: all business deletes are logical deletes via deleted=1.
+  Security: anonymous endpoints must be explicitly marked with @Anonymous; protected endpoints use JWT and optional @Perm checks.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Keep scope concrete and list affected capabilities explicitly.
+    - Include non-goals when a change could expand into unrelated backend features.
+  specs:
+    - Main specs must use "## Purpose" and "## Requirements".
+    - Requirements must be written with "### Requirement:" headings and at least one "#### Scenario:".
+    - Use SHALL or MUST in requirement body text when possible.
+    - Describe generated classes, packages, endpoints, DTOs, VOs, entities, SQL, and tests when they affect generation.
+  design:
+    - Preserve the existing architecture constraints unless the proposal explicitly changes them.
+    - Mention design patterns only when concrete classes or extension points are named.
+  tasks:
+    - Include validation and test tasks for every generated module.
+    - Keep tasks ordered so common and arch are generated before business modules.
