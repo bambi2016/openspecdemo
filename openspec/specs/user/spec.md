@@ -128,16 +128,32 @@
 - **AND** 不裸抛 `Exception`
 
 ### Requirement: 用户模块测试
-系统 SHALL 为注册、登录、当前用户和修改密码生成单元测试。
+系统 SHALL 为注册、登录、当前用户、修改密码和用户安全边界生成覆盖核心业务分支的自动化测试。
 
 #### Scenario: 登录测试
 - **WHEN** 生成用户模块测试
-- **THEN** 测试覆盖登录成功、密码错误、用户禁用
-- **AND** 校验 Controller 只依赖 `LoginContext`
+- **THEN** 测试必须覆盖登录成功、用户名不存在、密码错误、用户禁用、参数校验失败
+- **AND** 测试必须校验 JWT 返回字段、`lastLoginTime` 更新和 Controller 只依赖 `LoginContext`
 
 #### Scenario: 注册测试
 - **WHEN** 生成注册测试
-- **THEN** 测试覆盖注册成功和用户名重复
+- **THEN** 测试必须覆盖注册成功、用户名重复、参数校验失败、密码 BCrypt 加密保存
+- **AND** 测试必须校验响应 `UserVO` 不包含密码字段
+
+#### Scenario: 当前用户测试
+- **WHEN** 生成当前用户信息测试
+- **THEN** 测试必须覆盖已登录获取成功、未登录访问失败、用户不存在、用户禁用
+- **AND** 测试必须校验手机号和邮箱脱敏输出
+
+#### Scenario: 修改密码测试
+- **WHEN** 生成修改密码测试
+- **THEN** 测试必须覆盖修改成功、旧密码错误、新密码参数非法、未登录访问失败
+- **AND** 测试必须校验新密码使用 BCrypt 重新加密且旧密码不可继续登录
+
+#### Scenario: 用户模块覆盖率
+- **WHEN** 执行 `mvn verify`
+- **THEN** `com.enterprise.user` 模块行覆盖率不得低于 80%
+- **AND** 登录策略、用户 Service、用户 Controller 的核心分支必须纳入覆盖率统计
 
 ## Generation Notes
 - Controller 路径统一以 `/api/user` 开头。

@@ -113,18 +113,64 @@
 - **THEN** `Result<T>` 提供 builder 或静态建造方法
 - **AND** Controller 不手写重复响应结构
 
-### Requirement: 自动化测试约束
-系统 SHALL 为核心业务生成可运行的 JUnit5 + Mockito 单元测试。
+### Requirement: 业务场景测试映射
+系统 SHALL 为每个 OpenSpec `#### Scenario` 生成至少一个对应的自动化测试用例。
 
-#### Scenario: 生成服务测试
-- **WHEN** 生成 user 和 permission 模块
-- **THEN** 每个核心 Service 至少生成一个成功场景测试和一个失败场景测试
-- **AND** 测试类位于 `src/test/java` 对应包路径下
+#### Scenario: 生成场景测试用例
+- **WHEN** 任一规格文件中存在 `#### Scenario`
+- **THEN** 生成器必须生成对应的单元测试、Web 层测试或集成测试
+- **AND** 测试方法名应体现业务场景名称或行为意图
+- **AND** 不得只生成空测试、无断言测试或仅验证 Spring Context 启动的占位测试
+
+#### Scenario: 场景测试追踪
+- **WHEN** 生成测试类
+- **THEN** 每个测试类应通过方法命名或注释标明覆盖的 Requirement 或 Scenario
+- **AND** 核心业务场景不得遗漏测试映射
+
+### Requirement: 分层测试覆盖
+系统 SHALL 为 Controller、Service、Mapper、Strategy、Interceptor 和 AOP 核心逻辑生成分层测试。
 
 #### Scenario: 生成 Web 层测试
 - **WHEN** 生成 Controller
-- **THEN** 关键接口应包含 MockMvc 测试
-- **AND** 覆盖匿名接口、鉴权接口、权限不足接口
+- **THEN** 系统使用 MockMvc 覆盖成功响应、参数校验失败、鉴权失败、权限不足和业务异常响应
+- **AND** 测试应断言 HTTP 状态、`Result.code`、`Result.msg` 和关键 `data` 字段
+
+#### Scenario: 生成 Service 层测试
+- **WHEN** 生成核心 Service、LoginStrategy 或鉴权模板
+- **THEN** 系统使用 JUnit5 + Mockito 覆盖成功路径、失败路径、边界条件和异常分支
+- **AND** 测试应校验依赖调用、异常错误码和关键状态变更
+
+#### Scenario: 生成 Mapper 层测试
+- **WHEN** 生成 MyBatis Mapper 和 XML
+- **THEN** 系统至少覆盖核心查询 SQL、唯一性查询、逻辑删除过滤和状态过滤
+- **AND** Mapper 测试可使用内存数据库或测试容器，但必须能在 `mvn verify` 中自动执行
+
+### Requirement: 测试覆盖率门禁
+系统 SHALL 使用 JaCoCo 对自动化测试覆盖率进行统计，并在构建阶段执行覆盖率门禁。
+
+#### Scenario: 覆盖率达标
+- **WHEN** 执行 `mvn verify`
+- **THEN** JaCoCo 生成 HTML 和 XML 覆盖率报告
+- **AND** 项目整体 Java 行覆盖率不得低于 80%
+- **AND** `com.enterprise.user` 和 `com.enterprise.permission` 核心业务包行覆盖率不得低于 80%
+
+#### Scenario: 覆盖率不达标
+- **WHEN** 覆盖率低于门禁阈值
+- **THEN** Maven 构建必须失败
+- **AND** 输出可定位到未达标包或类的覆盖率报告
+
+### Requirement: 覆盖率统计范围
+系统 SHALL 明确 JaCoCo 覆盖率统计范围，避免无业务逻辑代码影响门禁，同时禁止排除核心业务逻辑。
+
+#### Scenario: 排除无业务逻辑代码
+- **WHEN** 统计覆盖率
+- **THEN** 可排除 `Application`、配置类、DTO、VO、Entity、枚举常量类、自动生成的常量类
+- **AND** 排除规则必须写入 Maven JaCoCo 配置
+
+#### Scenario: 禁止排除核心逻辑
+- **WHEN** 配置覆盖率排除规则
+- **THEN** 不得排除 Controller、Service、Strategy、Interceptor、AOP、Mapper 接口和核心工具类
+- **AND** 不得通过扩大排除范围绕过 80% 行覆盖率门禁
 
 ## Generation Notes
 - 生成器应优先根据 `openspec/openspec-gen.yaml` 的模块映射输出文件。

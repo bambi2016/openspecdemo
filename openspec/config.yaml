@@ -25,3 +25,5 @@ rules:
   tasks:
     - Include validation and test tasks for every generated module.
     - Keep tasks ordered so common and arch are generated before business modules.
+    - Include a task to run mvn verify and confirm JaCoCo line coverage is at least 80%.
+    - Include explicit test tasks for successful paths, failure paths, boundary conditions, and permission/authentication branches.

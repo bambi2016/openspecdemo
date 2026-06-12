@@ -47,6 +47,8 @@ generator:
     generate-service-impl: true
     generate-unit-test: true
     generate-controller-test: true
+    generate-mapper-test: true
+    generate-jacoco-config: true
 
   global-capabilities:
     auth:
@@ -65,6 +67,33 @@ generator:
       logical-delete-column: deleted
       default-status-column: status
       auto-fill-time-fields: true
+    testing:
+      framework: junit5-mockito
+      web-test: mockmvc
+      coverage-tool: jacoco
+      coverage-command: mvn verify
+      minimum-line-coverage: 0.80
+      package-minimum-line-coverage:
+        com.enterprise.user: 0.80
+        com.enterprise.permission: 0.80
+      scenario-test-mapping-required: true
+      require-assertions: true
+      fail-build-on-coverage-violation: true
+      coverage-excludes:
+        - "**/Application.class"
+        - "**/config/**"
+        - "**/dto/**"
+        - "**/vo/**"
+        - "**/entity/**"
+        - "**/*Enum.class"
+        - "**/*Constants.class"
+      coverage-must-include:
+        - "**/controller/**"
+        - "**/service/**"
+        - "**/strategy/**"
+        - "**/interceptor/**"
+        - "**/aop/**"
+        - "**/mapper/**"
 
   output-conventions:
     controller-path-prefix: /api

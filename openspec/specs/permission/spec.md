@@ -125,15 +125,34 @@
 - **THEN** 核心权限至少包含 `role:create`、`role:update`、`role:bind-permission`、`permission:list`、`user:bind-role`
 
 ### Requirement: 权限模块测试
-系统 SHALL 为角色新增、权限绑定、用户权限查询和 `@Perm` 鉴权生成测试。
+系统 SHALL 为角色、权限、绑定关系、当前用户权限查询和 `@Perm` 鉴权生成覆盖核心业务分支的自动化测试。
 
-#### Scenario: 服务层测试
+#### Scenario: 角色测试
 - **WHEN** 生成权限 Service 测试
-- **THEN** 测试覆盖角色创建成功、角色编码重复、绑定权限成功、目标角色不存在
+- **THEN** 测试必须覆盖角色创建成功、角色编码重复、参数校验失败、逻辑删除过滤
+
+#### Scenario: 权限标识测试
+- **WHEN** 生成权限标识相关测试
+- **THEN** 测试必须覆盖权限编码唯一性、权限编码格式非法、禁用权限过滤
+
+#### Scenario: 绑定关系测试
+- **WHEN** 生成角色权限和用户角色绑定测试
+- **THEN** 测试必须覆盖绑定成功、角色不存在、权限不存在、用户不存在、重复绑定、替换绑定集合
+- **AND** 测试必须校验失败场景不会写入部分关联数据
+
+#### Scenario: 当前权限查询测试
+- **WHEN** 生成当前用户权限查询测试
+- **THEN** 测试必须覆盖用户拥有多个角色、角色权限去重、禁用角色过滤、禁用权限过滤、逻辑删除关系过滤
 
 #### Scenario: 鉴权测试
 - **WHEN** 生成权限拦截器或鉴权模板测试
-- **THEN** 测试覆盖权限通过和权限不足
+- **THEN** 测试必须覆盖未登录、Token 无效、权限通过、权限不足、接口未声明 `@Perm`
+- **AND** 测试必须断言权限不足返回错误码 `10003`
+
+#### Scenario: 权限模块覆盖率
+- **WHEN** 执行 `mvn verify`
+- **THEN** `com.enterprise.permission` 模块行覆盖率不得低于 80%
+- **AND** 权限 Service、鉴权模板、权限拦截器和权限 Controller 的核心分支必须纳入覆盖率统计
 
 ## Generation Notes
 - Controller 路径统一以 `/api/permission` 开头。
