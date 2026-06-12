@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.enterprise.user.mapper.SysUserMapper">
+
+    <resultMap id="SysUserMap" type="com.enterprise.user.entity.SysUser">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="password" property="password"/>
+        <result column="nickname" property="nickname"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="status" property="status"/>
+        <result column="last_login_time" property="lastLoginTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id, username, password, nickname, phone, email, status, last_login_time, create_time, update_time, deleted
+    </sql>
+
+    <insert id="insert" parameterType="com.enterprise.user.entity.SysUser" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_user (username, password, nickname, phone, email, status, deleted, create_time, update_time)
+        VALUES (#{username}, #{password}, #{nickname}, #{phone}, #{email}, #{status}, #{deleted}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    </insert>
+
+    <select id="findById" resultMap="SysUserMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM sys_user
+        WHERE id = #{id}
+          AND deleted = 0
+    </select>
+
+    <select id="findByUsername" resultMap="SysUserMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM sys_user
+        WHERE username = #{username}
+          AND deleted = 0
+    </select>
+
+    <select id="countByUsername" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_user
+        WHERE username = #{username}
+          AND deleted = 0
+    </select>
+
+    <select id="countById" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_user
+        WHERE id = #{id}
+          AND deleted = 0
+    </select>
+
+    <update id="updatePassword">
+        UPDATE sys_user
+        SET password = #{password},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <update id="updateLastLoginTime">
+        UPDATE sys_user
+        SET last_login_time = #{lastLoginTime},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+</mapper>

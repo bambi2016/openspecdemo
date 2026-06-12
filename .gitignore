@@ -1,0 +1,51 @@
+# Build outputs
+target/
+out/
+build/
+*.class
+
+# Maven local/runtime artifacts
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE and editor files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Runtime and temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.pid
+
+# Local environment overrides
+.env
+.env.*
+!.env.example
+application-local.yml
+application-*.local.yml
+
+# Test and coverage outputs
+coverage/
+*.exec
+
+# Archives generated locally
+*.jar
+*.war
+*.ear
+!mvnw
+!mvnw.cmd
