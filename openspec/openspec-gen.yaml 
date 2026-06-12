@@ -1,0 +1,31 @@
+generator:
+  framework: springboot3
+  orm: mybatis-xml
+  test-framework: junit5-mockito
+  base-package: com.enterprise
+  module-mapping:
+    common:
+      spec: specs/common/base.spec.md
+      package: com.enterprise.common
+    user:
+      spec: specs/user/user.spec.md
+      package: com.enterprise.user
+    business:
+      spec: specs/business/business.spec.md
+      package: com.enterprise.business
+  生成开关配置（只控制产出文件类型，不写逻辑）:
+    generate-entity: true
+    generate-dto: true
+    generate-vo: true
+    generate-mapper-interface: true
+    generate-empty-mapper-xml: true
+    generate-controller: true
+    generate-error-enum: true
+    generate-base-service-interface: true
+    generate-base-service-impl-crud: true
+    generate-base-unit-test: true
+  全局能力开关:
+    auto-create-auth-interceptor: true
+    auto-create-request-log-aop: true
+    password-encrypt-type: bcrypt
+    sensitive-field-desensitize: true
