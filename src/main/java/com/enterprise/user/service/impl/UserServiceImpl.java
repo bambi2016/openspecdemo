@@ -1,6 +1,8 @@
 package com.enterprise.user.service.impl;
 
 import com.enterprise.arch.auth.LoginUserContext;
+import com.enterprise.arch.cache.CacheKeyUtils;
+import com.enterprise.arch.cache.QueryCacheOperations;
 import com.enterprise.common.error.CommonErrorCode;
 import com.enterprise.common.exception.BizException;
 import com.enterprise.common.util.PasswordUtils;
@@ -22,10 +24,12 @@ public class UserServiceImpl implements UserService {
 
     private final SysUserMapper userMapper;
     private final LoginContext loginContext;
+    private final QueryCacheOperations queryCacheOperations;
 
-    public UserServiceImpl(SysUserMapper userMapper, LoginContext loginContext) {
+    public UserServiceImpl(SysUserMapper userMapper, LoginContext loginContext, QueryCacheOperations queryCacheOperations) {
         this.userMapper = userMapper;
         this.loginContext = loginContext;
+        this.queryCacheOperations = queryCacheOperations;
     }
 
     @Override
@@ -57,6 +61,10 @@ public class UserServiceImpl implements UserService {
         if (userId == null) {
             throw new BizException(CommonErrorCode.TOKEN_EMPTY);
         }
+        return queryCacheOperations.getOrLoad(CacheKeyUtils.currentUser(userId), () -> loadCurrentUser(userId));
+    }
+
+    private UserVO loadCurrentUser(Long userId) {
         SysUser user = userMapper.findById(userId);
         if (user == null) {
             throw new BizException(CommonErrorCode.DATA_NOT_FOUND);
@@ -82,5 +90,6 @@ public class UserServiceImpl implements UserService {
             throw new BizException(UserErrorCode.OLD_PASSWORD_ERROR);
         }
         userMapper.updatePassword(userId, PasswordUtils.encode(passwordUpdateDTO.getNewPassword()));
+        queryCacheOperations.evictByPattern(CacheKeyUtils.userCachePattern(userId));
     }
 }

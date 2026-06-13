@@ -49,6 +49,8 @@ generator:
     generate-controller-test: true
     generate-mapper-test: true
     generate-jacoco-config: true
+    generate-redis-cache-config: true
+    generate-query-cache-test: true
 
   global-capabilities:
     auth:
@@ -67,6 +69,34 @@ generator:
       logical-delete-column: deleted
       default-status-column: status
       auto-fill-time-fields: true
+    cache:
+      enabled: true
+      provider: redis
+      read-through: true
+      ttl-minutes: 30
+      key-prefix: openspecdemo
+      user-scoped-query-cache: true
+      query-parameter-hash-required: true
+      fallback-to-database-on-cache-error: true
+      cacheable-queries:
+        - module: user
+          operation: current-user
+          key: "cache:user:me:user:{userId}"
+          ttl-minutes: 30
+          invalidate-on:
+            - password-updated
+            - user-status-updated
+            - user-logically-deleted
+        - module: permission
+          operation: current-permission-codes
+          key: "cache:permission:codes:user:{userId}"
+          ttl-minutes: 30
+          invalidate-on:
+            - user-role-bound
+            - role-permission-bound
+            - role-status-updated
+            - permission-status-updated
+            - permission-logically-deleted
     testing:
       framework: junit5-mockito
       web-test: mockmvc

@@ -41,6 +41,7 @@ class PermissionMapperTest {
     void relationQueriesReturnDistinctActivePermissionCodes() {
         assertThat(rolePermissionMapper.findPermissionCodesByUserId(1L))
                 .containsExactly("permission:list", "role:create");
+        assertThat(userRoleMapper.findUserIdsByRoleId(1L)).containsExactly(1L);
     }
 
     @Test

@@ -18,4 +18,12 @@
             (#{userId}, #{roleId}, 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         </foreach>
     </insert>
+
+    <select id="findUserIdsByRoleId" resultType="long">
+        SELECT DISTINCT user_id
+        FROM sys_user_role
+        WHERE role_id = #{roleId}
+          AND deleted = 0
+          AND status = 1
+    </select>
 </mapper>

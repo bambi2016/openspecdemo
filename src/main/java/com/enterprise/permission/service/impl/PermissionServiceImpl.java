@@ -1,6 +1,8 @@
 package com.enterprise.permission.service.impl;
 
 import com.enterprise.arch.auth.LoginUserContext;
+import com.enterprise.arch.cache.CacheKeyUtils;
+import com.enterprise.arch.cache.QueryCacheOperations;
 import com.enterprise.common.error.CommonErrorCode;
 import com.enterprise.common.exception.BizException;
 import com.enterprise.permission.dto.RoleCreateDTO;
@@ -31,17 +33,20 @@ public class PermissionServiceImpl implements PermissionService {
     private final SysRolePermissionMapper rolePermissionMapper;
     private final SysUserRoleMapper userRoleMapper;
     private final SysUserMapper userMapper;
+    private final QueryCacheOperations queryCacheOperations;
 
     public PermissionServiceImpl(SysRoleMapper roleMapper,
                                  SysPermissionMapper permissionMapper,
                                  SysRolePermissionMapper rolePermissionMapper,
                                  SysUserRoleMapper userRoleMapper,
-                                 SysUserMapper userMapper) {
+                                 SysUserMapper userMapper,
+                                 QueryCacheOperations queryCacheOperations) {
         this.roleMapper = roleMapper;
         this.permissionMapper = permissionMapper;
         this.rolePermissionMapper = rolePermissionMapper;
         this.userRoleMapper = userRoleMapper;
         this.userMapper = userMapper;
+        this.queryCacheOperations = queryCacheOperations;
     }
 
     @Override
@@ -70,8 +75,10 @@ public class PermissionServiceImpl implements PermissionService {
         if (permissionMapper.countActiveByIds(permissionIds) != permissionIds.size()) {
             throw new BizException(CommonErrorCode.DATA_NOT_FOUND);
         }
+        List<Long> affectedUserIds = userRoleMapper.findUserIdsByRoleId(roleId);
         rolePermissionMapper.deleteByRoleId(roleId);
         rolePermissionMapper.batchInsert(roleId, permissionIds);
+        affectedUserIds.forEach(this::evictPermissionCache);
     }
 
     @Override
@@ -86,6 +93,7 @@ public class PermissionServiceImpl implements PermissionService {
         }
         userRoleMapper.deleteByUserId(userId);
         userRoleMapper.batchInsert(userId, roleIds);
+        evictPermissionCache(userId);
     }
 
     @Override
@@ -94,16 +102,25 @@ public class PermissionServiceImpl implements PermissionService {
         if (userId == null) {
             throw new BizException(CommonErrorCode.TOKEN_EMPTY);
         }
-        return List.copyOf(findPermissionCodesByUserId(userId));
+        return permissionCodesByUserId(userId);
     }
 
     @Override
     public Set<String> findPermissionCodesByUserId(Long userId) {
-        return new LinkedHashSet<>(rolePermissionMapper.findPermissionCodesByUserId(userId));
+        return new LinkedHashSet<>(permissionCodesByUserId(userId));
     }
 
     @Override
     public List<PermissionVO> listPermissions() {
         return permissionMapper.findAllActive().stream().map(PermissionVO::from).toList();
+    }
+
+    private List<String> permissionCodesByUserId(Long userId) {
+        return queryCacheOperations.getOrLoad(CacheKeyUtils.currentPermissionCodes(userId), () ->
+                List.copyOf(new LinkedHashSet<>(rolePermissionMapper.findPermissionCodesByUserId(userId))));
+    }
+
+    private void evictPermissionCache(Long userId) {
+        queryCacheOperations.evictByPattern(CacheKeyUtils.userPermissionCachePattern(userId));
     }
 }

@@ -70,3 +70,16 @@
 - [x] 7.5 确认 `com.enterprise.permission` 行覆盖率不低于 80%。
 - [x] 7.6 执行 `openspec validate --all --strict`，修复所有 OpenSpec 校验错误。
 - [x] 7.7 人工检查生成代码，确认不存在物理删除、明文密码日志、遗漏 `@Anonymous`、遗漏 `@Perm`、业务模块直接 import 对方实体等问题。
+
+## 8. Redis 查询缓存
+
+- [x] 8.1 在 `pom.xml` 中增加 Spring Data Redis 依赖，并在 `application.yml` 中增加 Redis host、port、password、database、timeout 和缓存 TTL 占位配置。
+- [x] 8.2 在 `com.enterprise.arch` 下实现 Redis 序列化配置、缓存键工具和查询缓存组件，统一支持 read-through、30 分钟 TTL、用户维度缓存键和 Redis 异常降级。
+- [x] 8.3 为当前用户信息查询 `GET /api/user/me` 接入 Redis 缓存，缓存键为 `cache:user:me:user:{userId}`，缓存命中时不得再次查询数据库。
+- [x] 8.4 在修改密码、用户状态变更、用户逻辑删除等会改变用户可见信息的操作后，失效对应用户的当前用户信息缓存。
+- [x] 8.5 为当前用户权限标识查询接入 Redis 缓存，缓存键为 `cache:permission:codes:user:{userId}`，缓存命中时不得再次查询数据库。
+- [x] 8.6 在用户角色绑定、角色权限绑定、角色状态变更、权限状态变更和权限逻辑删除后，失效受影响用户的权限缓存。
+- [x] 8.7 增加 Redis 缓存单元测试，覆盖缓存未命中、缓存命中、30 分钟 TTL、不同用户缓存隔离、不同查询参数缓存隔离和 Redis 异常降级。
+- [x] 8.8 增加 user 模块缓存测试，断言 `GET /api/user/me` 缓存命中时 `SysUserMapper` 不被重复调用，并覆盖用户信息变更后的缓存失效。
+- [x] 8.9 增加 permission 模块缓存测试，断言当前权限查询缓存命中时权限 Mapper 不被重复调用，并覆盖权限绑定变更后的缓存失效。
+- [x] 8.10 执行 `mvn verify` 和 `openspec validate --all --strict`，确认新增 Redis 缓存代码后测试通过且行覆盖率仍不低于 80%。

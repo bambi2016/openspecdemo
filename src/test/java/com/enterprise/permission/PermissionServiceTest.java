@@ -2,6 +2,8 @@ package com.enterprise.permission;
 
 import com.enterprise.arch.auth.LoginUser;
 import com.enterprise.arch.auth.LoginUserContext;
+import com.enterprise.arch.cache.CacheKeyUtils;
+import com.enterprise.arch.cache.QueryCacheOperations;
 import com.enterprise.common.exception.BizException;
 import com.enterprise.permission.dto.RoleCreateDTO;
 import com.enterprise.permission.dto.RolePermissionBindDTO;
@@ -18,11 +20,13 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,8 +39,9 @@ class PermissionServiceTest {
     private final SysRolePermissionMapper rolePermissionMapper = mock(SysRolePermissionMapper.class);
     private final SysUserRoleMapper userRoleMapper = mock(SysUserRoleMapper.class);
     private final SysUserMapper userMapper = mock(SysUserMapper.class);
+    private final QueryCacheOperations queryCacheOperations = mock(QueryCacheOperations.class);
     private final PermissionServiceImpl permissionService = new PermissionServiceImpl(
-            roleMapper, permissionMapper, rolePermissionMapper, userRoleMapper, userMapper);
+            roleMapper, permissionMapper, rolePermissionMapper, userRoleMapper, userMapper, queryCacheOperations);
 
     @AfterEach
     void clearContext() {
@@ -78,9 +83,12 @@ class PermissionServiceTest {
                 .isEqualTo(10005);
 
         when(permissionMapper.countActiveByIds(List.of(1L, 2L))).thenReturn(2);
+        when(userRoleMapper.findUserIdsByRoleId(9L)).thenReturn(List.of(7L, 8L));
         permissionService.bindRolePermissions(9L, dto);
         verify(rolePermissionMapper).deleteByRoleId(9L);
         verify(rolePermissionMapper).batchInsert(9L, List.of(1L, 2L));
+        verify(queryCacheOperations).evictByPattern(CacheKeyUtils.userPermissionCachePattern(7L));
+        verify(queryCacheOperations).evictByPattern(CacheKeyUtils.userPermissionCachePattern(8L));
     }
 
     @Test
@@ -99,6 +107,7 @@ class PermissionServiceTest {
         permissionService.bindUserRoles(7L, dto);
         verify(userRoleMapper).deleteByUserId(7L);
         verify(userRoleMapper).batchInsert(7L, List.of(1L));
+        verify(queryCacheOperations).evictByPattern(CacheKeyUtils.userPermissionCachePattern(7L));
     }
 
     @Test
@@ -109,11 +118,22 @@ class PermissionServiceTest {
                 .isEqualTo(10001);
 
         LoginUserContext.set(new LoginUser(1L, "admin"));
+        cacheMissLoadsPermissionCodes(1L);
         when(rolePermissionMapper.findPermissionCodesByUserId(1L))
                 .thenReturn(List.of("role:create", "role:create", "permission:list"));
 
         assertThat(permissionService.currentPermissionCodes()).containsExactly("role:create", "permission:list");
         assertThat(permissionService.findPermissionCodesByUserId(1L)).isEqualTo(Set.of("role:create", "permission:list"));
+    }
+
+    @Test
+    void currentPermissionCodesReturnsCachedValueWithoutQueryingMapper() {
+        LoginUserContext.set(new LoginUser(1L, "admin"));
+        when(queryCacheOperations.<List<String>>getOrLoad(eq(CacheKeyUtils.currentPermissionCodes(1L)), any()))
+                .thenReturn(List.of("permission:list"));
+
+        assertThat(permissionService.currentPermissionCodes()).containsExactly("permission:list");
+        verify(rolePermissionMapper, never()).findPermissionCodesByUserId(anyLong());
     }
 
     private RoleCreateDTO roleCreateDTO() {
@@ -122,5 +142,11 @@ class PermissionServiceTest {
         dto.setRoleName("管理员");
         dto.setDescription("admin");
         return dto;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void cacheMissLoadsPermissionCodes(Long userId) {
+        when(queryCacheOperations.<List<String>>getOrLoad(eq(CacheKeyUtils.currentPermissionCodes(userId)), any()))
+                .thenAnswer(invocation -> ((Supplier<List<String>>) invocation.getArgument(1)).get());
     }
 }

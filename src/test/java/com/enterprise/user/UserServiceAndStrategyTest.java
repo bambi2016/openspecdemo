@@ -2,6 +2,8 @@ package com.enterprise.user;
 
 import com.enterprise.arch.auth.LoginUser;
 import com.enterprise.arch.auth.LoginUserContext;
+import com.enterprise.arch.cache.CacheKeyUtils;
+import com.enterprise.arch.cache.QueryCacheOperations;
 import com.enterprise.arch.jwt.JwtProperties;
 import com.enterprise.arch.jwt.JwtUtils;
 import com.enterprise.common.exception.BizException;
@@ -21,22 +23,27 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class UserServiceAndStrategyTest {
 
     private final SysUserMapper userMapper = mock(SysUserMapper.class);
+    private final QueryCacheOperations queryCacheOperations = mock(QueryCacheOperations.class);
     private final JwtUtils jwtUtils = new JwtUtils(jwtProperties());
     private final PasswordLoginStrategy passwordStrategy = new PasswordLoginStrategy(userMapper, jwtUtils);
-    private final UserServiceImpl userService = new UserServiceImpl(userMapper, new LoginContext(List.of(passwordStrategy)));
+    private final UserServiceImpl userService = new UserServiceImpl(
+            userMapper, new LoginContext(List.of(passwordStrategy)), queryCacheOperations);
 
     @AfterEach
     void clearContext() {
@@ -110,11 +117,26 @@ class UserServiceAndStrategyTest {
                 .isEqualTo(10001);
 
         LoginUserContext.set(new LoginUser(1L, "neo"));
+        cacheMissLoadsCurrentUser(1L);
         when(userMapper.findById(1L)).thenReturn(user(1L, 1, PasswordUtils.encode("secret123")));
 
         UserVO vo = userService.currentUser();
 
         assertThat(vo.getEmail()).isEqualTo("n***o@example.com");
+    }
+
+    @Test
+    void currentUserReturnsCachedValueWithoutQueryingMapper() {
+        LoginUserContext.set(new LoginUser(1L, "neo"));
+        UserVO cached = new UserVO();
+        cached.setId(1L);
+        cached.setUsername("neo");
+        when(queryCacheOperations.<UserVO>getOrLoad(eq(CacheKeyUtils.currentUser(1L)), any())).thenReturn(cached);
+
+        UserVO vo = userService.currentUser();
+
+        assertThat(vo.getUsername()).isEqualTo("neo");
+        verify(userMapper, never()).findById(anyLong());
     }
 
     @Test
@@ -128,6 +150,7 @@ class UserServiceAndStrategyTest {
         userService.updatePassword(dto);
 
         verify(userMapper).updatePassword(anyLong(), anyString());
+        verify(queryCacheOperations).evictByPattern(CacheKeyUtils.userCachePattern(1L));
 
         dto.setOldPassword("bad");
         assertThatThrownBy(() -> userService.updatePassword(dto))
@@ -171,5 +194,11 @@ class UserServiceAndStrategyTest {
         properties.setSecret("test-secret-for-user-module");
         properties.setExpirationSeconds(60);
         return properties;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void cacheMissLoadsCurrentUser(Long userId) {
+        when(queryCacheOperations.<UserVO>getOrLoad(eq(CacheKeyUtils.currentUser(userId)), any()))
+                .thenAnswer(invocation -> ((Supplier<UserVO>) invocation.getArgument(1)).get());
     }
 }
